@@ -3,6 +3,8 @@
             [babashka.process :refer [tokenize process]]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
+            [clojure.reflect :as reflect]
+            [com.rpl.specter :as s]
             [babashka.fs :as fs]))
 
 ;;;; Running commands (shell)
@@ -131,3 +133,31 @@
      :SWIp   (find-files bids-dir
                          :glob "**run-02_SWI*.nii.gz"
                          :optional "bc")}))
+
+;;;; Files
+(defn- with-temp-file--build-vector [v]
+  (loop [v      (->> v reverse (into '()))
+         result []]
+    
+    (if (seq v)
+      (recur (-> v pop pop)
+             (conj result (peek v) `(fs/create-temp-file {:suffix ~(-> v pop peek)})))
+      result)))
+
+(defmacro with-temp-file
+  "Execute code with temporary file(s).
+  v is a vector with name of var and suffix of temp file."
+  {:clj-kondo/lint-as 'clojure.core/let}
+  [v & commands]
+  `(let ~(with-temp-file--build-vector v)
+     (let [return# (do ~@commands)]
+       ~@(mapv #(list `fs/delete-on-exit (first %))
+               (partition 2 v))
+       return#)))
+
+
+;;;; Reflect
+(defn reflect-item
+  "What functions can we use on item?"
+  [item]
+  (s/select [s/ALL :name] (-> item reflect/reflect :members)))

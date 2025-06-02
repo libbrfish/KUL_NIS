@@ -3,12 +3,12 @@
             [babashka.fs :as fs]
             [com.rpl.specter :as s]
             [util :refer [run-command ensure-dir kulderivativesdir file-label
-                          images-for-participant]]
+                          images-for-participant with-temp-file]]
             [register :refer [apply-transform
                               affine-register-command
-                              affine-register]]
+                              bids-register]]
             [bet :refer [hdbet apply-mask]]
-            [sc.api]))
+            [sc.api :refer [defsc spy]]))
 
 (def cli-spec
   {:p {:desc "Participant name"}
@@ -57,7 +57,7 @@
         out-dir   (str (kulderivativesdir p dir) "/KUL_anat_register")
         _         (ensure-dir out-dir)
         tumor-dir (str (kulderivativesdir p dir) "/tumor")
-        _         (ensure tumor-dir)
+        _         (ensure-dir tumor-dir)
 
         
         T1-image   (or (get imgs :T1w nil)
@@ -69,24 +69,27 @@
         
         _ (hdbet T1-image T1-bet true)
 
-        temp-hdbet     (fn [img] (let [temp-file (str "/tmp/" (random-uuid) ".nii.gz")]
-                                   (-> (hdbet img temp-file false) :out println)
-                                   {:native   img
-                                    :label    (file-label img)
-                                    :bet-file temp-file}))
+        temp-hdbet     (fn [img]
+                         (with-temp-file [temp-file ".nii.gz"]
+                           (-> (hdbet img temp-file false) :out println)
+                           {:native   img
+                            :label    (file-label img)
+                            :bet-file temp-file}))
         other-imgs-bet (s/transform [s/MAP-VALS] temp-hdbet other-imgs)
         
         ;; Next register all masked images to the masked T1 image (keeping the registrations)
         other-imgs-reg (s/transform
                         [s/MAP-VALS]
                         #(merge %
-                                (affine-register {:output-dir (str (kulderivativesdir p dir)
+                                (bids-register {:output-dir   (str (kulderivativesdir p dir)
                                                                    "/KUL_anat_register")
-                                                  :source-mri (:bet-file %)
-                                                  :label      (:label %)
-                                                  :target-mri T1-bet
-                                                  :p          p
-                                                  :dir        dir}))
+                                                :source-mri   (:bet-file %)
+                                                :type         :affine
+                                                :label        (:label %)
+                                                :target-mri   T1-bet
+                                                :p            p
+                                                :dir          dir
+                                                :ants-verbose 0}))
                         other-imgs-bet)]
     
     ;; Next apply the registration to the unmasked images
@@ -156,3 +159,4 @@
 
 ;;       ;; Full participant mode (BIDS directory)
 ;;       (println "Participant mode is not fully implemented in BB yet."))))
+

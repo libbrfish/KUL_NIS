@@ -1,3 +1,4 @@
 /.clj-kondo/
 /.lsp/
 /.python-version
+/corr_MOCOparams.csv
