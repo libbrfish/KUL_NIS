@@ -1,5 +1,8 @@
 {:paths ["src/bb" "spec/bb"]
- :deps  {org.clojure/tools.logging {:mvn/version "1.3.0"}}
+ :deps  {org.clojure/tools.logging        {:mvn/version "1.3.0"}
+         com.rpl/specter                  {:mvn/version "1.1.4"}
+         vvvvalvalval/scope-capture       {:mvn/version "0.3.3"}
+         vvvvalvalval/scope-capture-nrepl {:mvn/version "0.3.1"}}
  
  :tasks {spec {:extra-deps {speclj/speclj {:mvn/version "3.9.0"}}
                :requires   ([speclj.main :as main])
