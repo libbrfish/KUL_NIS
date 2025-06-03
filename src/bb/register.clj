@@ -3,14 +3,25 @@
 
 (defmulti register :type)
 
-(defn apply-transform [input output reference transform interpolation-type]
-  (run-command "antsApplyTransforms -d 3 --float 1"
-               "--verbose 1"
-               "-i" input
-               "-o" output
-               "-r" reference
-               "-n" interpolation-type
-               "-t" transform))
+(defn apply-transform
+  ([input output reference transform interpolation-type]
+   (run-command "antsApplyTransforms -d 3 --float 1"
+                "--verbose 1"
+                "-i" input
+                "-o" output
+                "-r" reference
+                "-n" interpolation-type
+                "-t" transform))
+  ([input output reference transform interpolation-type inverse?]
+   (run-command "antsApplyTransforms -d 3 --float 1"
+                "--verbose 1"
+                "-i" input
+                "-o" output
+                "-r" reference
+                "-n" interpolation-type
+                (if inverse?
+                  (str "-t [" transform ",1]")
+                  (str "-t " transform)))))
 
 (defn rigid-register-command
   [ants-verbose warp-field output-mri interpolation-type target-mri source-mri]
@@ -46,7 +57,10 @@
   (affine-register-command ants-verbose warp-field output-mri interpolation-type target-mri source-mri))
 
 (defmethod register :rigid
-  [{:keys [ants-verbose warp-field output-mri interpolation-type target-mri source-mri]}]
+  [{:keys [ants-verbose warp-field output-mri interpolation-type target-mri source-mri]
+    :or   {ants-verbose 0
+           interpolation-type "BSpline"}}]
+  
   (rigid-register-command ants-verbose warp-field output-mri interpolation-type target-mri source-mri))
 
 (defn bids-register

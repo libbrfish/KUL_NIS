@@ -5,6 +5,11 @@
             [clojure.reflect :as reflect]
             [util :refer [reflect-item]]))
 
+(defn print-stub
+  [& x]
+  (println x)
+  (clojure.string/join " " x))
+
 (describe "get-native-DSC"
           (it "Can find the absolute file path of the DSC nii file."
               (should=
@@ -15,9 +20,7 @@
           (with-stubs)
           (it "Performs motion correction on native DSC images"
               (with-redefs
-                [util/run-command (fn [& x]
-                                    (println x)
-                                    (clojure.string/join " " x))]
+                [util/run-command print-stub]
                 (let [result (prepare-DSC
                               "DSC_in.nii.gz"
                               "DSC_mc.nii.gz")]
@@ -28,7 +31,9 @@
 
 (describe "calculate-rCBV"
           (it "Can calculate the rCBV maps from the registered DSC images."
-              (should= :succes
-                       (calculate-rCBV "DSC-reg.nii.gz" "DSC-rCBV.nii.gz"))))
+              (with-redefs
+                [util/run-command print-stub]
+                (should= "src/R/perfusion.R -i DSC-reg.nii.gz -o dir/"
+                         (calculate-rCBV "DSC-reg.nii.gz" "dir/")))))
 
 (run-specs)

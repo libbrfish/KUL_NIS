@@ -1,12 +1,11 @@
 (ns KUL-anat-register
   (:require [babashka.cli :as cli]
-            [babashka.fs :as fs]
             [com.rpl.specter :as s]
-            [util :refer [run-command ensure-dir kulderivativesdir file-label
+            [util :refer [ensure-dir kulderivativesdir file-label
                           images-for-participant with-temp-file]]
             [register :refer [apply-transform
-                              affine-register-command
                               bids-register]]
+            [tumor :refer [process-tumor]]
             [bet :refer [hdbet apply-mask]]
             [sc.api :refer [defsc spy]]))
 
@@ -106,29 +105,31 @@
      (s/select [s/MAP-VALS :output-mri]
                other-imgs-reg))
     ;; Copy all files to the processing dir (using a transformation to MNI space)
-    (let [{:keys [cT1w FLAIR T2w T1w]} (s/transform
-                                        [s/MAP-VALS]
-                                        :output-mri
-                                        (assoc other-imgs-reg :T1w {:output-mri T1-mask}))
-          
-          mni-image  "/opt/fsl/data/standard/MNI152_T1_1mm_brain.nii.gz"
-          warp-field (fs/create-temp-file)]
-      
-      (affine-register-command 0
-                               warp-field
-                               (str tumor-dir "/T1.nii.gz")
-                               "BSpline"
-                               mni-image
-                               T1w)
-      (let [transform (str warp-field "0GenericAffine.mat")]
-        (apply-transform T2w (str tumor-dir "/T2.nii.gz") mni-image transform interpolation-type)
-        (apply-transform cT1w (str tumor-dir "/CT1.nii.gz") mni-image transform interpolation-type)
-        (apply-transform FLAIR (str tumor-dir "/FLAIR.nii.gz") mni-image transform interpolation-type))
-      (run-command "hd_glio_predict" "-t1" (str tumor-dir "/T1.nii.gz")
-                   "-t1c" (str tumor-dir "/CT1.nii.gz")
-                   "-t2" (str tumor-dir "/T2.nii.gz")
-                   "-flair" (str tumor-dir "/FLAIR.nii.gz")
-                   "-o" (str tumor-dir "/tumor.nii.gz")))))
+    (process-tumor p dir)
+    ;; (let [{:keys [cT1w FLAIR T2w T1w]} (s/transform
+    ;;                                     [s/MAP-VALS]
+    ;;                                     :output-mri
+    ;;                                     (assoc other-imgs-reg :T1w {:output-mri T1-bet}))
+    
+    ;;       mni-image  "/opt/fsl/data/standard/MNI152_T1_1mm_brain.nii.gz"
+    ;;       warp-field (fs/create-temp-file)]
+    
+    ;;   (affine-register-command 0
+    ;;                            warp-field
+    ;;                            (str tumor-dir "/T1.nii.gz")
+    ;;                            "BSpline"
+    ;;                            mni-image
+    ;;                            T1w)
+    ;;   (let [transform (str warp-field "0GenericAffine.mat")]
+    ;;     (apply-transform T2w (str tumor-dir "/T2.nii.gz") mni-image transform interpolation-type)
+    ;;     (apply-transform cT1w (str tumor-dir "/CT1.nii.gz") mni-image transform interpolation-type)
+    ;;     (apply-transform FLAIR (str tumor-dir "/FLAIR.nii.gz") mni-image transform interpolation-type))
+    ;;   (run-command "hd_glio_predict" "-t1" (str tumor-dir "/T1.nii.gz")
+    ;;                "-t1c" (str tumor-dir "/CT1.nii.gz")
+    ;;                "-t2" (str tumor-dir "/T2.nii.gz")
+    ;;                "-flair" (str tumor-dir "/FLAIR.nii.gz")
+    ;;                "-o" (str tumor-dir "/tumor.nii.gz")))
+    ))
 
 
 ;;;; LOGIC
