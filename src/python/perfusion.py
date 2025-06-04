@@ -1,3 +1,6 @@
+#!/usr/bin/env .venv/bin/python
+
+print(f"Loading libraries.")
 import numpy as np
 import nibabel as nib
 import argparse
@@ -9,6 +12,7 @@ from scipy.integrate import cumulative_trapezoid, simpson
 from scipy.stats import linregress
 import matplotlib.pyplot as plt
 from scipy.linalg import svd
+print(f"Libraries loaded.")
 
 # For optional smoothing:
 from scipy.ndimage import gaussian_filter, gaussian_filter1d
@@ -124,7 +128,7 @@ def bsw_leakage_correction(deltaR2, aif_deltaR2, mask, time):
       - Subtract the leakage component, then integrate (simps).
       - slope (K2) is the leakage coefficient, intercept (K1).
     """
-        aif_int = cumulative_trapezoid(aif_deltaR2, time, initial=0)
+    aif_int = cumulative_trapezoid(aif_deltaR2, time, initial=0)
 
     shape = deltaR2.shape[:3]
     rCBV_unc = np.zeros(shape)
@@ -258,24 +262,24 @@ def main():
     save_nifti(delta_r2star_4d, aff, os.path.join(args.output_dir, "deltaR2star_timeseries.nii.gz"))
 
     # --- Detect AIF
-    print("📌 Detecting AIF...")
+    print("Detecting AIF...")
     aif_raw = detect_aif(dsc, mask)  # raw intensities
     aif_smooth = enforce_flat_baseline_tail(smooth_signal(aif_raw))
     aif_deltaR2 = compute_delta_r2star(aif_smooth, args.te)  # 1D
 
-    print("💾 Saving AIF plots...")
+    print("Saving AIF plots...")
     save_aif_plots(aif_raw, aif_smooth, aif_deltaR2, args.output_dir)
 
     # --- Compute ΔR2* for all voxels (already done above, but we keep it for clarity)
-    print("📌 Computing ΔR2* for all voxels...")
+    print("Computing ΔR2* for all voxels...")
     deltaR2 = compute_delta_r2star(dsc, args.te)
 
     # --- BSW leakage correction
-    print("📌 Performing BSW leakage correction...")
+    print("Performing BSW leakage correction...")
     rCBV_unc, rCBV_corr, K2, K1 = bsw_leakage_correction(deltaR2, aif_deltaR2, mask, time)
 
     # --- Deconvolution for rCBF, MTT, TTP, TT0
-    print("📌 Preparing AIF convolution matrix (standardized)...")
+    print("Preparing AIF convolution matrix (standardized)...")
     aif_std = (aif_deltaR2 - np.mean(aif_deltaR2)) / (np.std(aif_deltaR2) + 1e-8)
     nT = len(aif_std)
 
@@ -293,7 +297,7 @@ def main():
     TTP = np.zeros(shape_3d)
     TT0 = np.zeros(shape_3d)
 
-    print("🚀 Computing rCBF, MTT, TTP, TT0...")
+    print("Computing rCBF, MTT, TTP, TT0...")
     coords = np.where(mask > 0)
     for x, y, z in zip(*coords):
         curve = deltaR2[x, y, z, :]
@@ -333,7 +337,7 @@ def main():
         TTP[mask <= 0] = np.nan
         TT0[mask <= 0] = np.nan
 
-    print("💾 Saving leakage correction outputs and final maps...")
+    print("Saving leakage correction outputs and final maps...")
     save_nifti(rCBV_unc, aff, os.path.join(args.output_dir, "rCBV_uncorrected.nii.gz"))
     save_nifti(rCBV_corr, aff, os.path.join(args.output_dir, "rCBV_corrected.nii.gz"))
     save_nifti(K2, aff, os.path.join(args.output_dir, "K2.nii.gz"))
@@ -343,7 +347,7 @@ def main():
     save_nifti(TTP, aff, os.path.join(args.output_dir, "TTP.nii.gz"))
     save_nifti(TT0, aff, os.path.join(args.output_dir, "TT0.nii.gz"))
 
-    print("✅ All maps saved to:", args.output_dir)
+    print("All maps saved to:", args.output_dir)
 
 
 if __name__ == "__main__":

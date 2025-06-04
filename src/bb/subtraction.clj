@@ -1,25 +1,30 @@
 (ns subtraction
-  (:require [util]
-            [bet]
-            [clojure.string :as str]
-            [babashka.fs :as fs]
-            [clojure.tools.logging :as log]))
+  (:require
+   [babashka.fs :as fs]
+   [babashka.process :as sh]
+   [bet]
+   [clojure.string :as str]
+   [clojure.tools.logging :as log]
+   [util]))
+
+(def nbins 10)
+(def p-val 99)
 
 (defn mrstats
   "Possible output: mean, median, std, std_rv, min, max, count"
   [image output mask]
-  (-> (babashka.process/sh "mrstats" "-mask" mask "-output" output image)
+  (-> (sh/sh "mrstats" "-mask" mask "-output" output image)
       :out (str/split #" ") first Float/parseFloat))
 
-(defn gen-p95-mask
-  [image mask output]
-  (let [max (mrstats image "max" mask)
-        min (mrstats image "min" mask)
-        p95 (-> (- max min)
-                (/ 100)
-                (* 35)
-                (+ min))]
-    (util/run-command "mrcalc" image p95 "-lt" output "-force")))
+
+(defn gen-p-mask
+  [image p mask output]
+  (util/run-command "mrthreshold" "-force"
+                    image "-mask" mask
+                    "-percentile" p
+                    "-out_masked"
+                    "-comparison le"
+                    output))
 
 (defn gen-histogram-mask
   "Generate a mask to use for the histogram matching.
@@ -28,10 +33,10 @@ This mask should be comprised of:
 - BET mask.
 - Masking of the >p95 structures on the BET post contrast images."
   [bet-mask tumor-mask cT1 output]
+  
   (util/with-temp-file [tumor-mask-dilated ".nii.gz"
                         bet-tumor-mask ".nii.gz"
-                        cT1-masked ".nii.gz"
-                        p95-mask ".nii.gz"]
+                        cT1-masked ".nii.gz"]
     ;; Dilatate the tumor mask
     (util/run-command "maskfilter" "-force"
                       "-npass 5"
@@ -47,11 +52,11 @@ This mask should be comprised of:
     (util/run-command "mrcalc" cT1 bet-tumor-mask "-mult" cT1-masked "-force")
 
     ;; Mask the top 5% intensity values of the cT1 images.
-    (log/info "Running gen-p95-mask.")
-    (gen-p95-mask cT1 bet-tumor-mask p95-mask)
+    (log/info "Running gen-p-mask.")
+    (gen-p-mask cT1 p-val bet-tumor-mask output)
     
     ;; Combine bet-mask, tumor-mask and p95-mask
-    (util/run-command "mrcalc" p95-mask bet-tumor-mask "-min" output "-force")
+    ;; (util/run-command "mrcalc" p95-mask bet-tumor-mask "-min" output "-force")
     output))
 
 (defn get-bet-mask
@@ -77,7 +82,7 @@ This mask should be comprised of:
           mask (str mask)]
       (gen-histogram-mask bet-mask tumor-mask cT1 mask)
       (util/run-command "mrhistmatch nonlinear" T1 cT1 output
-                        "-bins 5"
+                        "-bins" nbins
                         "-mask_input" mask
                         "-mask_target" mask
                         "-force")

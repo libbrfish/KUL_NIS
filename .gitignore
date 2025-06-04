@@ -2,3 +2,8 @@
 /.lsp/
 /.python-version
 /corr_MOCOparams.csv
+/argparse
+/nib
+/np
+/os
+/uv.lock
