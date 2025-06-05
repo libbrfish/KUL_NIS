@@ -49,23 +49,41 @@
 
 (defn prepare-DSC
   "Motion correction and denoising of DSC image data."
-  [dsc-file output]
-  (util/ensure-dir (str (babashka.fs/parent (babashka.fs/file output))))
-  (with-temp-file [dsc-part ".nii.gz"
-                   dsc-avg ".nii.gz"
-                   mask ".nii.gz"]
-    (get-volumes dsc-file 0 5 dsc-part)
-    (register/avg dsc-part dsc-avg)
-    (register/motion-correct dsc-file dsc-avg output)
-    (denoise output)
-    (let [mask-name (str (util/file-label mask) "_bet.nii.gz")
-          mask-path (-> mask fs/parent)
-          mask-bet  (str mask-path "/" mask-name)]
-      (log/info "Generating HDBET mask of DSC series.")
-      (bet/hdbet dsc-avg mask true)
-      {:output output
-       :mask   mask-bet
-       :avg    dsc-avg})))
+  ([dsc-file output]
+   (util/ensure-dir (str (babashka.fs/parent (babashka.fs/file output))))
+   (with-temp-file [dsc-part ".nii.gz"
+                    dsc-avg ".nii.gz"
+                    mask ".nii.gz"]
+     (get-volumes dsc-file 0 5 dsc-part)
+     (register/avg dsc-part dsc-avg)
+     (register/motion-correct dsc-file dsc-avg output)
+     (denoise output)
+     (let [mask-name (str (util/file-label mask) "_bet.nii.gz")
+           mask-path (-> mask fs/parent)
+           mask-bet  (str mask-path "/" mask-name)]
+       (log/info "Generating HDBET mask of DSC series.")
+       (bet/hdbet dsc-avg mask true)
+       {:output output
+        :mask   mask-bet
+        :avg    dsc-avg})))
+  ([dsc-file output mask-output]
+   (util/ensure-dir (str (babashka.fs/parent (babashka.fs/file output))))
+   (with-temp-file [dsc-part ".nii.gz"
+                    dsc-avg ".nii.gz"
+                    mask ".nii.gz"]
+     (get-volumes dsc-file 0 5 dsc-part)
+     (register/avg dsc-part dsc-avg)
+     (register/motion-correct dsc-file dsc-avg output)
+     (denoise output)
+     (let [mask-name (str (util/file-label mask) "_bet.nii.gz")
+           mask-path (-> mask fs/parent)
+           mask-bet  (str mask-path "/" mask-name)]
+       (log/info "Generating HDBET mask of DSC series.")
+       (bet/hdbet dsc-avg mask true)
+       (fs/copy mask-bet mask-output)
+       {:output output
+        :mask   mask-output
+        :avg    dsc-avg}))))
 
 (defn calculate-rCBV
   [dsc-reg dir]
@@ -90,7 +108,8 @@
         rcbf           (str out-dir "/rCBVF.nii.gz")
         rcbf-reg       (str out-dir "/rCBF_reg2_T1.nii.gz")
         mtt            (str out-dir "/MTT.nii.gz")
-        mtt-reg        (str out-dir "/MTT_reg2_T1.nii.gz")]
+        mtt-reg        (str out-dir "/MTT_reg2_T1.nii.gz")
+        mask-out       (str out-dir "/DSC_mask.nii.gz")]
     (with-temp-file [dsc-preproc ".nii.gz"
                      dsc-reg2-t1 ".nii.gz"
                      dsc-avg-bet ".nii.gz"]
@@ -100,6 +119,8 @@
             dsc-avg         (:avg dsc-prepared)]
         #_(calculate-rCBV dsc-preproc out-dir)
         (sc.api/spy (calculate-rCBV-py dsc-preproc dsc-mask out-dir TE TR))
+        ;; Copy the mask to the output dir
+        (fs/copy dsc-mask mask-out)
         (bet/apply-mask dsc-avg dsc-mask dsc-avg-bet)
         (register {:type               :affine
                    :ants-verbose       0

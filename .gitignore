@@ -7,3 +7,5 @@
 /np
 /os
 /uv.lock
+/src/python/__pycache__/
+/test/python/__pycache__/

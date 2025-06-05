@@ -7,6 +7,7 @@ import os
 from scipy.special import comb
 from scipy.signal import savgol_filter
 
+percentile = 99.8
 
 def load_nifti(path):
     img = nib.nifti1.load(path)
@@ -17,11 +18,11 @@ def extract_histogram(data, bins=512):
     flattened = data.flatten()
     flattened = flattened[~np.isnan(flattened)]
     flattened = flattened[flattened > 0]
-    p99 = np.percentile(flattened, 99)
-    filtered = flattened[flattened <= p99]
+    p = np.percentile(flattened, percentile)
+    filtered = flattened[flattened <= p]
     hist, edges = np.histogram(filtered, bins=bins, density=True)
     centers = (edges[:-1] + edges[1:]) / 2
-    return centers, hist, p99
+    return centers, hist, p
 
 
 def bernstein_basis(x, n, k):
