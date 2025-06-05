@@ -78,7 +78,7 @@
                "--te" te
                "--tr" tr))
 
-(defn process-DSC
+(defn process-DSC  
   [dir p]
   (let [dsc            (get-native-DSC dir p)
         out-dir        (str (util/kulderivativesdir p dir) "/perfusion")
@@ -115,3 +115,6 @@
 ;; TODO: 1. Masking of vessels on the rCBV images
 
 ;; TODO: 2. Normalization of the rCBV maps.
+
+(comment
+  (process-DSC "" 1))
