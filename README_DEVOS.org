@@ -1,3 +1,4 @@
 * TODO todo
 - vergelijking van histogram matching op basis van modus en linker schouder versus percentiel matching door middel van mrhistmatch
 - Code is beschikbaar in histmatch.clj (TODO om te zetten naar een `process` functie)
+- histogram matching in subtraction.clj aanpassen naar de custom R code
