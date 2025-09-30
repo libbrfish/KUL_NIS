@@ -81,8 +81,15 @@ def copy_tags(reader, new_img, seriesdesc, seriesnumber):
     modification_date = time.strftime("%Y%m%d")
     direction = new_img.GetDirection()
 
+
+    
     series_tag_values_a = [
-        (k, reader.GetMetaData(k))
+        (
+            k,
+            reader.GetMetaData(k)
+            .encode('utf-8', 'surrogateescape')  # convert str -> bytes (preserving invalids)
+            .decode('latin-1')                   # decode bytes as latin-1
+        )
         for k in tags_to_copy if reader.HasMetaDataKey(k)
     ]
     series_tag_values_b = [
@@ -101,20 +108,25 @@ def copy_tags(reader, new_img, seriesdesc, seriesnumber):
     return series_tag_values_a + series_tag_values_b
 
 
-def convert_and_write(nifti_input, donor_dcm, dcm_output, verbose=False,
-                      seriesdesc="IKTsimple - KUL_NIS", seriesnumber=""):
+def check_inputs(nifti_input, donor_dcm):
+    """Validate that the input files exist."""
     if not os.path.exists(donor_dcm):
-        print(donor_dcm + " does not exist")
-        return 1
+        return False, f"{donor_dcm} does not exist"
     if not os.path.exists(nifti_input):
-        print(nifti_input + " does not exist")
-        return 1
+        return False, f"{nifti_input} does not exist"
+    return True, ""
 
+
+
+def detect_input_type(nifti_input):
+    """Return whether the input is a TIFF or NIfTI."""
     _, img_ext = os.path.splitext(nifti_input)
     is_tiff = (img_ext == ".tiff")
-    print("Assuming input is a 3d-tiff" if is_tiff else "Assuming input is nifti")
+    return is_tiff
 
-    # Read donor dicom metadata
+
+def read_dicom_metadata(donor_dcm, verbose=False):
+    """Read DICOM metadata from donor image."""
     reader = sitk.ImageFileReader()
     reader.SetFileName(donor_dcm)
     reader.LoadPrivateTagsOn()
@@ -128,27 +140,45 @@ def convert_and_write(nifti_input, donor_dcm, dcm_output, verbose=False,
             except Exception:
                 print("An exception occurred")
 
-    # Prepare the image
-    new_img = prepare_image(nifti_input, is_tiff)
+    return reader
 
-    # Collect dicom tags
-    series_tag_values = copy_tags(reader, new_img, seriesdesc, seriesnumber)
 
-    print("Incorporating the following dicom tags:")
-    print(series_tag_values)
-
-    # Clean and recreate output dir
+def prepare_output_dir(dcm_output):
+    """Clean and recreate the output directory."""
     if os.path.exists(dcm_output):
         shutil.rmtree(dcm_output)
     os.makedirs(dcm_output, exist_ok=True)
 
-    # Writer
+
+def write_slices(new_img, series_tag_values, dcm_output, writer):
+    """Write all slices of the new image as DICOMs."""
+    for i in range(new_img.GetDepth()):
+        writeSlices(series_tag_values, new_img, dcm_output, i, writer)    
+
+
+def convert_and_write(nifti_input, donor_dcm, dcm_output, verbose=False,
+                      seriesdesc="ITKsimple - KUL_NIS", seriesnumber=""):
+    valid, msg = check_inputs(nifti_input, donor_dcm)
+    if not valid:
+        print(msg)
+        return 1
+    
+    is_tiff = detect_input_type(nifti_input)
+    print("Assuming input is a 3d-tiff" if is_tiff else "Assuming input is nifti")
+    
+    reader = read_dicom_metadata(donor_dcm, verbose)
+
+    new_img = prepare_image(nifti_input, is_tiff)
+
+    series_tag_values = copy_tags(reader, new_img, seriesdesc, seriesnumber)
+    print("Incorporating the following dicom tags:")
+    print(series_tag_values)
+
+    prepare_output_dir(dcm_output)
+
     writer = sitk.ImageFileWriter()
     writer.KeepOriginalImageUIDOn()
-
-    # Write slices
-    for i in range(new_img.GetDepth()):
-        writeSlices(series_tag_values, new_img, dcm_output, i, writer)
+    write_slices(new_img, series_tag_values, dcm_output, writer)
 
     return 0
 
