@@ -1,11 +1,4 @@
-#!/usr/bin/env -S uv run
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#     "numpy",
-#     "simpleitk",
-# ]
-# ///
+#!/usr/bin/env -S uv run --script
 
 import SimpleITK as sitk
 import argparse

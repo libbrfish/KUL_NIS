@@ -12,7 +12,7 @@ dependencies = [
     "pytest>=8.4.0",
     "scikit-learn>=1.6.1",
     "scipy>=1.15.3",
-    "simpleitk>=2.5.0"
+    "simpleitk>=2.5.0",
 ]
 
 [tool.basedpyright]
@@ -23,4 +23,10 @@ typeCheckingMode = "basic"
 
 [tool.pytest.ini_options]
 testpaths = ["test/python"]
-pythonpath = ["src/python"]
+pythonpath = [".", "src/python"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    ]
+
+[tool.ty.environment]
+root = ["./src/python"]

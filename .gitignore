@@ -9,3 +9,4 @@
 /uv.lock
 /src/python/__pycache__/
 /test/python/__pycache__/
+/__pycache__/
