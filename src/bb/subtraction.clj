@@ -7,6 +7,17 @@
    [clojure.tools.logging :as log]
    [util]))
 
+;; First run this processing:
+;; Generate a BIDS directory containing files for:
+;; - *T1w.nii.gz 
+;; - *T1w.nii.gz containing "gadolinium"
+;; - *FLAIR.nii.gz
+;; - *T2w.nii.gz
+
+;; 1. KUL_anat_biascorrect.sh
+;; 2. KUL_anat_register_rigid.sh
+;; 3. KUL_anat_segment_tumor.sh
+
 (def nbins 10)
 (def p-val 99)
 

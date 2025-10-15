@@ -6,6 +6,9 @@
    [com.rpl.specter :as s]
    [util]))
 
+
+;; We need data in the form
+
 (defn get-DSC-data
   [dir p]
   {:rCBV-corrected
@@ -50,6 +53,25 @@
                        "--output" out
                        "--src" in-hist
                        "--ref" ref-hist))))
+
+(defn main
+  [dir out]
+  (let [{in :rCBV-corrected, in-mask :DSC-mask}
+        (get-DSC-data dir 1)
+        
+        {ref :rCBV-corrected, ref-mask :DSC-mask}
+        (get-DSC-data dir 2)
+        
+        in-hist  (get-percentiles dir 1)
+        ref-hist (get-percentiles dir 2)]
+    
+    (println "in:" in)
+    (println "in-mask:" in-mask)
+    (println "ref:" ref)
+    (println "ref-mask:" ref-mask)
+    (println "in-hist:" in-hist)
+    (println "ref-hist:" ref-hist)
+    (histmatch in in-mask in-hist ref-hist out)))
 
 
 ;; TODO: Nog om te zetten in code

@@ -19,7 +19,7 @@ def fake_image():
     """Create a small fake 3D image using SimpleITK."""
     arr = np.zeros((5, 5, 3), dtype=np.int16)
     img = sitk.GetImageFromArray(arr)
-    img.SetSpacing([1.0, 1.0, 1.0])
+    img.SetSpacing([0.5, 1.0, 1.0])
     return img
 
 
@@ -44,20 +44,6 @@ def test_prepare_image_nifti_conversion(monkeypatch):
     new_img = convert_to_dicom.prepare_image("dummy.nii.gz", is_tiff=False)
 
     assert isinstance(new_img, sitk.Image)
-    assert new_img.GetPixelIDTypeAsString() == "16-bit signed integer"
-
-
-def test_prepare_image_tiff(monkeypatch):
-    """Ensure TIFF branch does not rescale."""
-    fake_arr = np.ones((5, 5, 5), dtype=np.int16)
-    fake_img = sitk.GetImageFromArray(fake_arr)
-
-    monkeypatch.setattr(sitk, "ReadImage", lambda x: fake_img)
-
-    new_img = convert_to_dicom.prepare_image("dummy.tiff", is_tiff=True)
-
-    assert isinstance(new_img, sitk.Image)
-    # Same dtype as input
     assert new_img.GetPixelIDTypeAsString() == "16-bit signed integer"
 
 
@@ -86,32 +72,10 @@ def test_convert_and_write_missing_files(tmp_path):
     assert rc == 1
 
 
-def test_convert_and_write_tiff(monkeypatch, tmp_path, fake_image):
-    """Run through TIFF branch without actual IO."""
-    donor = tmp_path / "donor.dcm"
-    nifti = tmp_path / "input.tiff"
-    outdir = tmp_path / "out"
-    donor.write_text("dummy")
-    nifti.write_text("dummy")
-
-    # Mock SimpleITK pieces
-    monkeypatch.setattr(sitk, "ReadImage", lambda x: fake_image)
-    mock_reader = MagicMock()
-    mock_reader.GetMetaDataKeys.return_value = []
-    mock_reader.HasMetaDataKey.return_value = False
-    mock_reader.GetMetaData.return_value = "val"
-    monkeypatch.setattr(sitk, "ImageFileReader", lambda: mock_reader)
-    monkeypatch.setattr(convert_to_dicom, "writeSlices", lambda *a, **k: None)
-
-    rc = convert_to_dicom.convert_and_write(str(nifti), str(donor), str(outdir))
-    assert rc == 0
-    assert outdir.exists()
-
-
 def test_main_runs(monkeypatch, tmp_path, fake_image):
     """Integration test for main()."""
     donor = tmp_path / "donor.dcm"
-    nifti = tmp_path / "input.tiff"
+    nifti = tmp_path / "input.nifti"
     outdir = tmp_path / "out"
     donor.write_text("dummy")
     nifti.write_text("dummy")

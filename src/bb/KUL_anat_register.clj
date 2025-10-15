@@ -1,3 +1,4 @@
+
 (ns KUL-anat-register
   (:require [babashka.cli :as cli]
             [com.rpl.specter :as s]
@@ -104,60 +105,6 @@
      #(apply-mask % T1-mask %)
      (s/select [s/MAP-VALS :output-mri]
                other-imgs-reg))
-    ;; Copy all files to the processing dir (using a transformation to MNI space)
-    (process-tumor p dir)
-    ;; (let [{:keys [cT1w FLAIR T2w T1w]} (s/transform
-    ;;                                     [s/MAP-VALS]
-    ;;                                     :output-mri
-    ;;                                     (assoc other-imgs-reg :T1w {:output-mri T1-bet}))
     
-    ;;       mni-image  "/opt/fsl/data/standard/MNI152_T1_1mm_brain.nii.gz"
-    ;;       warp-field (fs/create-temp-file)]
-    
-    ;;   (affine-register-command 0
-    ;;                            warp-field
-    ;;                            (str tumor-dir "/T1.nii.gz")
-    ;;                            "BSpline"
-    ;;                            mni-image
-    ;;                            T1w)
-    ;;   (let [transform (str warp-field "0GenericAffine.mat")]
-    ;;     (apply-transform T2w (str tumor-dir "/T2.nii.gz") mni-image transform interpolation-type)
-    ;;     (apply-transform cT1w (str tumor-dir "/CT1.nii.gz") mni-image transform interpolation-type)
-    ;;     (apply-transform FLAIR (str tumor-dir "/FLAIR.nii.gz") mni-image transform interpolation-type))
-    ;;   (run-command "hd_glio_predict" "-t1" (str tumor-dir "/T1.nii.gz")
-    ;;                "-t1c" (str tumor-dir "/CT1.nii.gz")
-    ;;                "-t2" (str tumor-dir "/T2.nii.gz")
-    ;;                "-flair" (str tumor-dir "/FLAIR.nii.gz")
-    ;;                "-o" (str tumor-dir "/tumor.nii.gz")))
-    ))
-
-
-;;;; LOGIC
-
-;; (defn main []
-;;   (let [source      (:s args)
-;;         target      (:t args)
-;;         participant (:p args)
-;;         output-dir  (or (:d args) (System/getProperty "user.dir"))
-;;         warp2mni?   (:w args)
-;;         reg-type    (or (:r args) "1")]
-
-;;     (when (and (nil? source) (nil? participant))
-;;       (usage))
-
-;;     (ensure-dir output-dir)
-
-;;     ;; Direct registration
-;;     (if source
-;;       (let [source-label (-> (io/file source) .getName (str/split #"\.") first)
-;;             target-label (-> (io/file target) .getName (str/split #"\.") first)
-;;             out-prefix   (str output-dir "/" source-label "_reg2_" target-label)]
-
-;;         (case reg-type
-;;           "1" (rigid-register source target out-prefix)
-;;           "2" (println "Affine registration not implemented yet")
-;;           "3" (println "Non-rigid registration not implemented yet")))
-
-;;       ;; Full participant mode (BIDS directory)
-;;       (println "Participant mode is not fully implemented in BB yet."))))
+    (process-tumor p dir)))
 
