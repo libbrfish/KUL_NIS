@@ -51,7 +51,7 @@ def detect_aif(dsc, mask, num_candidates=200):
 
     pca = PCA(n_components=2)
     reduced = pca.fit_transform(ts[top])
-    kmeans = KMeans(n_clusters=1, n_init=10, random_state=42)
+    kmeans = KMeans(n_clusters=1, n_init=10, random_state=42)  # pyright: ignore[reportArgumentType]
     kmeans.fit(reduced)
 
     # Pick the voxel closest to the cluster centroid
@@ -143,14 +143,14 @@ def bsw_leakage_correction(deltaR2, aif_deltaR2, mask, time):
 
         # Fit: tissue_curve(t) ~ slope * aif_int(t) + intercept
         slope, intercept, _, _, _ = linregress(aif_int, tissue_curve)
-        leakage_component = slope * aif_int
+        leakage_component = slope * aif_int  # pyright: ignore[reportOperatorIssue]
         corrected_curve = tissue_curve - leakage_component
         corrected_auc = simpson(corrected_curve, time)
 
         rCBV_unc[x, y, z] = tissue_auc
         rCBV_corr[x, y, z] = corrected_auc
-        K2_map[x, y, z] = slope
-        K1_map[x, y, z] = intercept
+        K2_map[x, y, z] = slope  # pyright: ignore[reportCallIssue, reportArgumentType]
+        K1_map[x, y, z] = intercept  # pyright: ignore[reportCallIssue, reportArgumentType]
 
     return rCBV_unc, rCBV_corr, K2_map, K1_map
 

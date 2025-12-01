@@ -9,9 +9,14 @@
    [sc.api]
    [util :refer [find-files run-command with-temp-file]]))
 
-(defn get-native-DSC
-  [dir p]
-  (first (find-files dir :glob (str "**sub-" p "**dsc.nii.gz"))))
+;; (defn get-native-DSC
+;;   [dir p]
+;;   (first (find-files dir :glob (str "**sub-" p "**dsc.nii.gz"))))
+
+(defn get-DSC [dir]
+  (first (find-files dir :glob "**DSC.nii**")))
+(defn get-DSC-json [dir]
+  (first (find-files dir :glob "**DSC**.json**")))
 
 (defn get-native-DSC-json
   [dir p]
@@ -26,9 +31,10 @@
   (-> m :RepetitionTime (* 1000)))
 
 (defn get-TE-TR
-  [dir p]
+  [dir]
+  
   (let [dsc-json 
-        (->> (get-native-DSC-json dir p)
+        (->> (get-DSC-json dir)
              io/reader
              json/parse-stream 
              (mapv (fn [[k v]] [(keyword k) v]))
@@ -97,23 +103,23 @@
                "--tr" tr))
 
 (defn process-DSC  
-  [dir p]
-  (let [dsc            (get-native-DSC dir p)
-        out-dir        (str (util/kulderivativesdir p dir) "/perfusion")
-        t1-bet         (str (util/kulderivativesdir p dir) "/KUL_anat_register/T1w_masked.nii.gz")
-        warp-field     (str out-dir "/DSC_reg2_T1")
-        transform-file (str warp-field "0GenericAffine.mat")
-        rcbv           (str out-dir "/rCBV_corrected.nii.gz")
-        rcbv-reg       (str out-dir "/rCBV_reg2_T1.nii.gz")
-        rcbf           (str out-dir "/rCBVF.nii.gz")
-        rcbf-reg       (str out-dir "/rCBF_reg2_T1.nii.gz")
-        mtt            (str out-dir "/MTT.nii.gz")
-        mtt-reg        (str out-dir "/MTT_reg2_T1.nii.gz")
-        mask-out       (str out-dir "/DSC_mask.nii.gz")]
+  [dir]
+  (let [dsc      (get-DSC dir)
+        out-dir  (str dir "perfusion")
+        ;; t1-bet         (str (util/kulderivativesdir p dir) "/KUL_anat_register/T1w_masked.nii.gz")
+        ;; warp-field     (str out-dir "/DSC_reg2_T1")
+        ;; transform-file (str warp-field "0GenericAffine.mat")
+        ;; rcbv           (str out-dir "/rCBV_corrected.nii.gz")
+        ;; rcbv-reg       (str out-dir "/rCBV_reg2_T1.nii.gz")
+        ;; rcbf           (str out-dir "/rCBVF.nii.gz")
+        ;; rcbf-reg       (str out-dir "/rCBF_reg2_T1.nii.gz")
+        ;; mtt            (str out-dir "/MTT.nii.gz")
+        ;; mtt-reg        (str out-dir "/MTT_reg2_T1.nii.gz")
+        mask-out (str out-dir "/DSC_mask.nii.gz")]
     (with-temp-file [dsc-preproc ".nii.gz"
                      dsc-reg2-t1 ".nii.gz"
                      dsc-avg-bet ".nii.gz"]
-      (let [{:keys [TE TR]} (get-TE-TR dir p)
+      (let [{:keys [TE TR]} (get-TE-TR dir)
             dsc-prepared    (prepare-DSC dsc dsc-preproc)
             dsc-mask        (:mask dsc-prepared)
             dsc-avg         (:avg dsc-prepared)]
@@ -122,16 +128,17 @@
         ;; Copy the mask to the output dir
         (fs/copy dsc-mask mask-out)
         (bet/apply-mask dsc-avg dsc-mask dsc-avg-bet)
-        (register {:type               :affine
-                   :ants-verbose       0
-                   :warp-field         warp-field
-                   :output-mri         (str dsc-reg2-t1)
-                   :interpolation-type "BSpline"
-                   :target-mri         t1-bet
-                   :source-mri         dsc-avg-bet})
-        (register/apply-transform rcbv rcbv-reg t1-bet transform-file "BSpline")
-        (register/apply-transform rcbf rcbf-reg t1-bet transform-file "BSpline")
-        (register/apply-transform mtt mtt-reg t1-bet transform-file "BSpline")))))
+        ;; (register {:type               :affine
+        ;;            :ants-verbose       0
+        ;;            :warp-field         warp-field
+        ;;            :output-mri         (str dsc-reg2-t1)
+        ;;            :interpolation-type "BSpline"
+        ;;            :target-mri         t1-bet
+        ;;            :source-mri         dsc-avg-bet})
+        ;; (register/apply-transform rcbv rcbv-reg t1-bet transform-file "BSpline")
+        ;; (register/apply-transform rcbf rcbf-reg t1-bet transform-file "BSpline")
+        ;; (register/apply-transform mtt mtt-reg t1-bet transform-file "BSpline")
+        ))))
 
 ;; TODO: 1. Masking of vessels on the rCBV images
 

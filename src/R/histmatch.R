@@ -1,7 +1,9 @@
 #!/usr/bin/env Rscript
 
-library(RNifti)
-library(optparse)
+suppressPackageStartupMessages({
+  library(RNifti)
+  library(optparse)
+})
 
 multi_linear_match <- function(img, src_vals, ref_vals, mask = NULL) {
   if (length(src_vals) != length(ref_vals)) {
