@@ -14,7 +14,7 @@
 ;;   (first (find-files dir :glob (str "**sub-" p "**dsc.nii.gz"))))
 
 (defn get-DSC [dir]
-  (first (find-files dir :glob "**DSC.nii**")))
+  (first (find-files dir :glob "**DSC*.nii**")))
 (defn get-DSC-json [dir]
   (first (find-files dir :glob "**DSC**.json**")))
 

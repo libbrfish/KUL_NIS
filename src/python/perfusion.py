@@ -1,6 +1,7 @@
-#!/usr/bin/env .venv/bin/python
+#!/bin/sh
+'''exec' uv run --script --project "$(dirname -- "$(realpath -- "$0")")" "$0" "$@"
+' '''
 
-print(f"Loading libraries.")
 import numpy as np
 import nibabel as nib
 import argparse
@@ -12,7 +13,6 @@ from scipy.integrate import cumulative_trapezoid, simpson
 from scipy.stats import linregress
 import matplotlib.pyplot as plt
 from scipy.linalg import svd
-print(f"Libraries loaded.")
 
 # For optional smoothing:
 from scipy.ndimage import gaussian_filter, gaussian_filter1d
